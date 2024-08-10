@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사격 게임</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            display: block;
+            background-color: #fff;
+            margin: 0 auto;
+            border: 2px solid #000;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: red;
+            display: none; /* 초기에는 메시지를 숨깁니다 */
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+        }
+        #startButton {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none; /* 초기에는 버튼을 숨깁니다 */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="message">Clear!</div>
+    <button id="startButton">Start</button>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageElement = document.getElementById('message');
+        const startButton = document.getElementById('startButton');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const targetRadius = 30;
+        let targetX, targetY;
+        let score = 0;
+        let intervalTime = 3000; // 초기 3초
+        let autoMoveInterval;
+        let gameActive = true; // 게임이 활성화되어 있는지 확인하는 변수
+
+        function initializeGame() {
+            targetX = Math.random() * (width - 2 * targetRadius) + targetRadius;
+            targetY = Math.random() * (height - 2 * targetRadius) + targetRadius;
+            score = 0;
+            intervalTime = 3000; // 초기 3초
+            gameActive = true; // 게임 활성화 상태
+            updateInterval(); // 타이머를 초기화합니다
+            draw(); // 초기 상태 그리기
+            messageElement.style.display = 'none'; // 메시지를 숨깁니다
+            startButton.style.display = 'none'; // 시작 버튼을 숨깁니다
+            canvas.addEventListener('click', handleClick); // 클릭 이벤트 리스너를 추가합니다
+        }
+
+        function drawTarget() {
+            if (gameActive) { // 게임이 활성화되어 있을 때만 표적을 그립니다
+                ctx.beginPath();
+                ctx.arc(targetX, targetY, targetRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        function drawScore() {
+            ctx.font = '24px Arial';
+            ctx.fillStyle = 'black';
+            ctx.fillText('Score: ' + score, 10, 30);
+        }
+
+        function drawCrosshair(x, y) {
+            ctx.beginPath();
+            ctx.moveTo(x - 10, y);
+            ctx.lineTo(x + 10, y);
+            ctx.moveTo(x, y - 10);
+            ctx.lineTo(x, y + 10);
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function checkHit(x, y) {
+            const dx = x - targetX;
+            const dy = y - targetY;
+            return dx * dx + dy * dy <= targetRadius * targetRadius;
+        }
+
+        function moveTarget() {
+            targetX = Math.random() * (width - 2 * targetRadius) + targetRadius;
+            targetY = Math.random() * (height - 2 * targetRadius) + targetRadius;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            drawTarget();
+            drawScore();
+            drawCrosshair(width / 2, height / 2);
+        }
+
+        function handleClick(event) {
+            if (!gameActive) return; // 게임이 비활성화 상태일 때는 클릭 이벤트 무시
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            if (checkHit(x, y)) {
+                if (score < 30) { // 점수가 30점 미만일 때만 점수를 증가시킵니다
+                    score++;
+                    moveTarget(); // 클릭 시 즉시 목표를 새로운 위치로 이동
+                    if (score === 30) {
+                        gameActive = false; // 게임 비활성화 상태로 변경
+                        messageElement.style.display = 'block'; // "Clear!" 메시지를 표시합니다
+                        startButton.style.display = 'block'; // "Start" 버튼을 표시합니다
+                        clearInterval(autoMoveInterval); // 타이머를 정리합니다
+                        canvas.removeEventListener('click', handleClick); // 클릭 이벤트 리스너를 제거합니다
+                    } else {
+                        updateInterval(); // 점수에 따라 intervalTime 업데이트
+                    }
+                }
+            }
+            draw();
+        }
+
+        function updateInterval() {
+            clearInterval(autoMoveInterval); // 기존 interval을 정리
+            if (score >= 20) {
+                intervalTime = 1000; // 점수 20점 이상일 때 1초로 설정
+            } else if (score >= 10) {
+                intervalTime = 2000; // 점수 10점 이상일 때 2초로 설정
+            } else {
+                intervalTime = 3000; // 그 외에는 3초로 설정
+            }
+            autoMoveInterval = setInterval(() => {
+                moveTarget();
+                draw();
+            }, intervalTime); // 현재 intervalTime을 사용
+        }
+
+        function startGame() {
+            initializeGame(); // 게임을 초기화합니다
+            startButton.style.display = 'none'; // "Start" 버튼을 숨깁니다
+        }
+
+        startButton.addEventListener('click', startGame); // "Start" 버튼 클릭 시 게임 시작
+
+        resetGame(); // 초기 상태 설정
+
+        function resetGame() {
+            startButton.style.display = 'block'; // "Start" 버튼을 표시합니다
+            canvas.removeEventListener('click', handleClick); // 클릭 이벤트 리스너를 제거합니다
+        }
+    </script>
+</body>
+</html>
